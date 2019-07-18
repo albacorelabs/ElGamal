@@ -119,18 +119,15 @@ instance (S.Serialize a , S.Serialize b) => S.Serialize (LargeKey a b) where
     put (LargeKey lo hi) = S.put hi >> S.put lo
     get = flip LargeKey <$> S.get <*> S.get
     
-instance S.Serialize Point where
-    put p = 
-        S.putByteString $ compressPoint p
-    get = do
-        p' <- S.getByteString 33
-        return $ decompressPoint crv p'
-
 instance S.Serialize ECCipherText where
-    put (ECCipherText a b) = S.put a >> S.put b
+    put (ECCipherText a b) = do
+        S.putByteString $ compressPoint a
+        S.putByteString $ compressPoint b
 
-    get = ECCipherText <$> S.get <*> S.get
-
+    get = do
+        a <- S.getByteString 33
+        b <- S.getByteString 33
+        return $ ECCipherText (decompressPoint crv a) (decompressPoint crv b)
 ------------- HELPER FUNCTIONS -------------------------
 
 crv :: Curve
